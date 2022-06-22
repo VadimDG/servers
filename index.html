@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible'>
+    <title>Servers</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+
+        td,
+        th {
+            border: 1px solid black;
+        }
+
+        th {
+            padding: 2px 7px;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <button id="add">Add</button>
+        <button id="remove">Remove</button>
+    </div>
+    <table id="table">
+        <tr>
+            <td>Current time</td>
+            <td id="currentTime"></td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Total usage time</td>
+            <td id="totalUsageTime"></td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <th class="virtual-server-id">VirtualServerId</th>
+            <th>CurrentDateTime</th>
+            <th>RemoveDateTime</th>
+            <th>SelectedForRemove</th>
+        </tr>
+    </table>
+</body>
+<script>
+    let servers = [];
+    let timerInterval;
+    let timer = document.getElementById('currentTime');
+
+    const selectedServers = new Set();
+    const basePath = 'https://localhost:7135/api/servers';
+    document.getElementById('add').addEventListener('click', () => {
+        fetch(basePath + '/CreateServer').then(_ => loadData()).catch(err => alert(err))
+    });
+
+    document.getElementById('remove').addEventListener('click', () => {
+        const payload = Array.from(selectedServers).join(',');
+        fetch(basePath + '/Remove/' + payload).then(_ => loadData()).catch(err => alert(err));
+    });
+
+    window.onload = function () {
+        loadData();
+    };
+
+    function loadData() {
+        fetch(basePath + '/getServers')
+            .then(x => x.json())
+            .then((data) => {
+                console.log(data);
+                servers = data.serversInfo;
+                document.getElementById('totalUsageTime').textContent = data.totalUsageTime;
+                const table = document.getElementById('table');
+                
+                const rows = document.querySelectorAll('.data-row');
+                if (rows && rows.length > 0) {
+                    rows.forEach(row => {
+                        row.remove();
+                    });
+                }
+
+                servers.forEach(element => {
+                    const tr = document.createElement('tr');
+                    tr.classList.add('data-row');
+
+                    const td1 = document.createElement('td');
+                    td1.textContent = element.id;
+                    tr.appendChild(td1);
+
+                    const td2 = document.createElement('td');
+                    td2.textContent = element.createdDateTime;
+                    tr.appendChild(td2);
+
+                    const td3 = document.createElement('td');
+                    td3.textContent = element.removeDateTime;
+                    tr.appendChild(td3);
+
+                    const td4 = document.createElement('td');
+                    if (!element.removeDateTime) {
+                        td4.innerHTML = `<input type="checkbox" id=${element.id} class="checkbox">`;
+                    }
+
+                    tr.appendChild(td4);
+
+                    table.appendChild(tr);
+                });
+
+                const allCheckBox = document.querySelectorAll('.checkbox');
+
+                allCheckBox.forEach((checkbox) => {
+                    checkbox.addEventListener('change', (event) => {
+                        if (event.target.checked) {
+                            selectedServers.add(event.target.id);
+                        } else {
+                            selectedServers.delete(event.target.id);
+                        }
+                    });
+                });
+            });
+    }
+
+    (function startTime() {
+        var time = getCurrentTime();
+        timer.innerText = time;
+
+        setInterval(function () {
+            var time = getCurrentTime();
+            timer.innerText = time;
+
+        }, 1000);
+    }());
+
+    function getCurrentTime() {
+        var dateOBJ = new Date();
+        var time = {
+            hours: dateOBJ.getHours(),
+            minutes: dateOBJ.getMinutes(),
+            seconds: dateOBJ.getSeconds(),
+            tt: 'AM'
+        }
+        if (time.hours == 12) {
+            time.ampm = 'PM';
+        } else if (time.hours > 12) {
+            time.hours -= 12;
+            time.tt = 'PM'
+        }
+        if (time.hours < 10) {
+            time.hours = '0' + time.hours;
+        }
+        if (time.minutes < 10) {
+            time.minutes = '0' + time.minutes;
+        }
+        if (time.seconds < 10) {
+            time.seconds = '0' + time.seconds;
+        }
+
+        return time.hours + ':' + time.minutes + ':' + time.seconds;
+    }
+</script>
+
+</html>
